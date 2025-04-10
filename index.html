@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+</head>
+
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen">
+        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-800">Prompt Library</h1>
+            </div>
+
+            <div class="p-4">
+                <button id="new-prompt-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i> New Prompt
+                </button>
+            </div>
+
+            <div class="p-4 pb-2">
+                <div class="relative">
+                    <input type="text" id="search" placeholder="Search prompts..."
+                        class="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+
+            <div class="p-2">
+                <div class="flex flex-wrap gap-1" id="tag-filters">
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto" id="prompt-list-container">
+                <div id="prompt-list">
+                </div>
+            </nav>
+
+            <div class="mt-auto p-2 border-t border-gray-200">
+                <div class="flex flex-col">
+                    <div id="auth-status" class="flex items-center justify-between p-2">
+                        <div id="user-info" class="flex items-center">
+                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-2"
+                                id="avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span class="text-sm text-gray-600" id="username">Not signed in</span>
+                        </div>
+                        <button id="auth-button" class="text-sm text-blue-600 hover:text-blue-800">Sign in</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col">
+            <div class="border-b border-gray-200 p-4 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-800">Prompt Composer</h2>
+                <div>
+                    <button id="toggle-json-btn" class="text-blue-600 hover:text-blue-800 text-sm hidden">
+                        <i class="fas fa-code mr-1"></i> Toggle JSON View
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6">
+                <form id="prompt-form" class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="prompt-name" class="block text-sm font-medium text-gray-700 mb-1">Prompt
+                                Name</label>
+                            <input type="text" id="prompt-name" name="promptName"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter prompt name">
+                        </div>
+                        <div>
+                            <label for="prompt-tags" class="block text-sm font-medium text-gray-700 mb-1">Tags (comma
+                                separated)</label>
+                            <input type="text" id="prompt-tags" name="promptTags"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="tag1, tag2, tag3">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="prompt-category"
+                            class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="prompt-category" name="promptCategory"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Writing">Writing</option>
+                            <option value="Coding">Coding</option>
+                            <option value="SEO">SEO</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="prompt-content" class="block text-sm font-medium text-gray-700 mb-1">Prompt
+                            Content</label>
+                        <div class="text-xs text-gray-500 mb-2">
+                            Use <code class="bg-gray-100 px-1 rounded">#{variable}</code> for input fields, mark
+                            template parts with brackets <code class="bg-gray-100 px-1 rounded">[like this]</code>,
+                            prefilled parts with <code class="bg-gray-100 px-1 rounded">{{prefilled}}</code>, and insert
+                            global templates using <code class="bg-gray-100 px-1 rounded">&lt;&lt;KEY&gt;&gt;</code>.
+                        </div>
+                        <div class="relative">
+                            <textarea id="prompt-content" name="promptContent" rows="8"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter prompt content here..."></textarea>
+                            <div class="absolute bottom-2 right-2 space-x-1">
+                                <button type="button" id="add-variable-btn" title="Add Variable"
+                                    class="text-gray-500 hover:text-blue-600 bg-white rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button>
+                                <button type="button" id="mark-as-template-btn" title="Mark as Template"
+                                    class="text-gray-500 hover:text-blue-600 bg-white rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <i class="fas fa-brackets-curly"></i>
+                                </button>
+                                <button type="button" id="mark-as-prefilled-btn" title="Mark as Prefilled"
+                                    class="text-gray-500 hover:text-blue-600 bg-white rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button type="button" id="insert-global-template-btn" title="Insert Global Template"
+                                    class="text-gray-500 hover:text-blue-600 bg-white rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <i class="fas fa-angle-double-left"></i><i class="fas fa-angle-double-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" id="cancel-btn"
+                            class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                        <button type="button" id="duplicate-btn"
+                            class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 hidden">Duplicate</button>
+                        <button type="button" id="delete-btn"
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hidden">Delete</button>
+                        <button type="submit" id="save-btn"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Prompt</button>
+                    </div>
+                </form>
+
+                <div class="mt-8 border-t pt-6 border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Preview & Inputs</h3>
+                    <div id="variables-container" class="space-y-4 mb-4">
+                    </div>
+
+                    <div class="mt-4 text-right">
+                        <button id="copy-prompt-btn"
+                            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                            <i class="far fa-copy mr-2"></i> Copy Prompt
+                        </button>
+                        <span id="copy-status" class="text-sm text-green-600 ml-2 hidden">Copied!</span>
+                    </div>
+                    <div id="final-prompt-preview"
+                        class="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-md text-sm whitespace-pre-wrap hidden">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="variable-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 class="text-lg font-semibold mb-4">Add Variable</h3>
+            <div class="mb-4">
+                <label for="variable-name" class="block text-sm font-medium text-gray-700 mb-1">Variable Name</label>
+                <input type="text" id="variable-name"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-variable-btn"
+                    class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                <button id="add-variable-confirm-btn"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 class="text-lg font-semibold mb-4">GitHub Authentication</h3>
+            <p class="mb-4 text-gray-600 text-sm">To save and manage your prompts, please authenticate with GitHub using
+                a Personal Access Token with 'gist' scope.</p>
+            <div class="mb-4">
+                <label for="github-token" class="block text-sm font-medium text-gray-700 mb-1">Personal Access
+                    Token</label>
+                <input type="password" id="github-token"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <a href="https://github.com/settings/tokens/new?scopes=gist&description=Prompt%20Manager%20Token"
+                    target="_blank" class="text-xs text-blue-600 hover:underline">Create a new token</a>
+            </div>
+            <div id="auth-error" class="text-red-500 text-sm mb-4 hidden">Authentication failed. Please check your
+                token.</div>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-auth-btn"
+                    class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                <button id="confirm-auth-btn"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Authenticate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const GistManager = {
+                token: localStorage.getItem('github_token') || null,
+                username: localStorage.getItem('github_username') || null,
+                avatarUrl: localStorage.getItem('github_avatar') || null,
+                gistId: localStorage.getItem('prompt_manager_gist_id') || null,
+
+                setAuth(token, username, avatarUrl) {
+                    this.token = token;
+                    this.username = username;
+                    this.avatarUrl = avatarUrl;
+
+                    localStorage.setItem('github_token', token);
+                    localStorage.setItem('github_username', username);
+                    localStorage.setItem('github_avatar', avatarUrl);
+
+                    updateAuthUI();
+                },
+
+                clearAuth() {
+                    this.token = null;
+                    this.username = null;
+                    this.avatarUrl = null;
+                    this.gistId = null;
+
+                    localStorage.removeItem('github_token');
+                    localStorage.removeItem('github_username');
+                    localStorage.removeItem('github_avatar');
+                    localStorage.removeItem('prompt_manager_gist_id');
+
+                    updateAuthUI();
+                    allPrompts = [];
+                    renderPromptList([]);
+                    extractAllTags([]);
+                    clearForm();
+                },
+
+                async getUserInfo(token) {
+                    try {
+                        const response = await fetch('https://api.github.com/user', {
+                            headers: { 'Authorization': `token ${token}` }
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const data = await response.json();
+                        return { username: data.login, avatarUrl: data.avatar_url };
+                    } catch (error) {
+                        console.error('Error getting user info:', error);
+                        throw error;
+                    }
+                },
+
+                async findOrCreateGist() {
+                    if (!this.token) throw new Error('Not authenticated');
+                    if (this.gistId) {
+                        // Verify the gist still exists and belongs to the user
+                        try {
+                            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                                headers: { 'Authorization': `token ${this.token}` }
+                            });
+                            if (response.ok) {
+                                const gist = await response.json();
+                                if (gist.owner.login === this.username) {
+                                    return this.gistId;
+                                }
+                            }
+                            // If gist not found or owner mismatch, clear local gistId
+                            this.gistId = null;
+                            localStorage.removeItem('prompt_manager_gist_id');
+                        } catch (error) {
+                            console.warn('Error verifying existing gist:', error);
+                            this.gistId = null;
+                            localStorage.removeItem('prompt_manager_gist_id');
+                        }
+                    }
+
+                    // Try finding the gist by description
+                    try {
+                        const response = await fetch('https://api.github.com/gists', {
+                            headers: { 'Authorization': `token ${this.token}` }
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const gists = await response.json();
+                        const existingGist = gists.find(g => g.description === '[Prompt Manager Data]' && g.files['prompts.json']);
+                        if (existingGist) {
+                            this.gistId = existingGist.id;
+                            localStorage.setItem('prompt_manager_gist_id', this.gistId);
+                            return this.gistId;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching gists:', error);
+                        // Proceed to create a new one if finding fails
+                    }
+
+
+                    // Create a new gist if not found or verification failed
+                    try {
+                        const response = await fetch('https://api.github.com/gists', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `token ${this.token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                description: '[Prompt Manager Data]',
+                                public: false,
+                                files: {
+                                    'prompts.json': { content: JSON.stringify({ prompts: [] }, null, 2) }
+                                }
+                            })
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const data = await response.json();
+                        this.gistId = data.id;
+                        localStorage.setItem('prompt_manager_gist_id', this.gistId);
+                        return this.gistId;
+                    } catch (error) {
+                        console.error('Error creating gist:', error);
+                        throw error;
+                    }
+                },
+
+                async getPrompts() {
+                    if (!this.token) {
+                        showNotification('Please sign in to load prompts.', 'error');
+                        return [];
+                    }
+                    try {
+                        const gistId = await this.findOrCreateGist();
+                        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                            headers: { 'Authorization': `token ${this.token}` }
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const gist = await response.json();
+                        if (!gist.files['prompts.json']) {
+                            console.warn('prompts.json not found in the gist. Returning empty array.');
+                            return [];
+                        }
+                        const content = JSON.parse(gist.files['prompts.json'].content);
+                        return content.prompts || [];
+                    } catch (error) {
+                        console.error('Error getting prompts:', error);
+                        showNotification(`Error loading prompts: ${error.message}`, 'error');
+                        if (error.message.includes('404')) { // Gist might have been deleted externally
+                            this.gistId = null;
+                            localStorage.removeItem('prompt_manager_gist_id');
+                        }
+                        return [];
+                    }
+                },
+
+                async saveAllPrompts(prompts) {
+                    if (!this.token) throw new Error('Not authenticated');
+                    try {
+                        const gistId = await this.findOrCreateGist();
+                        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Authorization': `token ${this.token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                description: '[Prompt Manager Data]',
+                                files: {
+                                    'prompts.json': { content: JSON.stringify({ prompts: prompts }, null, 2) }
+                                }
+                            })
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return true;
+                    } catch (error) {
+                        console.error('Error saving prompts:', error);
+                        showNotification(`Error saving prompts: ${error.message}`, 'error');
+                        throw error;
+                    }
+                }
+            };
+
+            const authButton = document.getElementById('auth-button');
+            const authModal = document.getElementById('auth-modal');
+            const confirmAuthBtn = document.getElementById('confirm-auth-btn');
+            const cancelAuthBtn = document.getElementById('cancel-auth-btn');
+            const githubTokenInput = document.getElementById('github-token');
+            const avatarPlaceholder = document.getElementById('avatar-placeholder');
+            const usernameElement = document.getElementById('username');
+            const authError = document.getElementById('auth-error');
+
+            const promptListContainer = document.getElementById('prompt-list-container');
+            const promptList = document.getElementById('prompt-list');
+            const searchInput = document.getElementById('search');
+            const tagFiltersContainer = document.getElementById('tag-filters');
+
+            const promptForm = document.getElementById('prompt-form');
+            const promptNameInput = document.getElementById('prompt-name');
+            const promptTagsInput = document.getElementById('prompt-tags');
+            const promptCategorySelect = document.getElementById('prompt-category');
+            const promptContentTextarea = document.getElementById('prompt-content');
+
+            const addVariableBtn = document.getElementById('add-variable-btn');
+            const markAsTemplateBtn = document.getElementById('mark-as-template-btn');
+            const markAsPrefilledBtn = document.getElementById('mark-as-prefilled-btn');
+            const insertGlobalTemplateBtn = document.getElementById('insert-global-template-btn');
+            const variableModal = document.getElementById('variable-modal');
+            const variableNameInput = document.getElementById('variable-name');
+            const addVariableConfirmBtn = document.getElementById('add-variable-confirm-btn');
+            const cancelVariableBtn = document.getElementById('cancel-variable-btn');
+
+            const saveBtn = document.getElementById('save-btn');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const deleteBtn = document.getElementById('delete-btn');
+            const duplicateBtn = document.getElementById('duplicate-btn');
+            const newPromptBtn = document.getElementById('new-prompt-btn');
+            const copyPromptBtn = document.getElementById('copy-prompt-btn');
+            const copyStatus = document.getElementById('copy-status');
+
+            const variablesContainer = document.getElementById('variables-container');
+            const finalPromptPreview = document.getElementById('final-prompt-preview');
+
+            let currentPromptId = null;
+            let allPrompts = [];
+            let activeTags = new Set();
+
+            function updateAuthUI() {
+                if (GistManager.token && GistManager.username) {
+                    authButton.textContent = 'Sign out';
+                    usernameElement.textContent = GistManager.username;
+                    if (GistManager.avatarUrl) {
+                        avatarPlaceholder.innerHTML = `<img src="${GistManager.avatarUrl}" alt="${GistManager.username}'s avatar" class="h-8 w-8 rounded-full">`;
+                    } else {
+                        avatarPlaceholder.innerHTML = `<i class="fas fa-user"></i>`;
+                    }
+                    loadPrompts();
+                } else {
+                    authButton.textContent = 'Sign in';
+                    usernameElement.textContent = 'Not signed in';
+                    avatarPlaceholder.innerHTML = `<i class="fas fa-user"></i>`;
+                    promptList.innerHTML = '<div class="p-4 text-sm text-gray-500">Sign in to load prompts.</div>';
+                    tagFiltersContainer.innerHTML = '';
+                    clearForm();
+                }
+                authError.classList.add('hidden');
+            }
+
+            updateAuthUI();
+
+            authButton.addEventListener('click', function () {
+                if (GistManager.token) {
+                    GistManager.clearAuth();
+                } else {
+                    authModal.classList.remove('hidden');
+                    githubTokenInput.focus();
+                    authError.classList.add('hidden');
+                }
+            });
+
+            confirmAuthBtn.addEventListener('click', async function () {
+                const token = githubTokenInput.value.trim();
+                confirmAuthBtn.disabled = true;
+                confirmAuthBtn.textContent = 'Authenticating...';
+                authError.classList.add('hidden');
+
+                if (!token) {
+                    authError.textContent = 'Please enter a token.';
+                    authError.classList.remove('hidden');
+                    confirmAuthBtn.disabled = false;
+                    confirmAuthBtn.textContent = 'Authenticate';
+                    return;
+                }
+
+                try {
+                    const userInfo = await GistManager.getUserInfo(token);
+                    GistManager.setAuth(token, userInfo.username, userInfo.avatarUrl);
+                    authModal.classList.add('hidden');
+                    githubTokenInput.value = '';
+                    showNotification('Authentication successful!', 'success');
+                } catch (error) {
+                    authError.textContent = 'Authentication failed. Please check your token and ensure it has gist scope.';
+                    authError.classList.remove('hidden');
+                } finally {
+                    confirmAuthBtn.disabled = false;
+                    confirmAuthBtn.textContent = 'Authenticate';
+                }
+            });
+
+            cancelAuthBtn.addEventListener('click', function () {
+                authModal.classList.add('hidden');
+                githubTokenInput.value = '';
+                authError.classList.add('hidden');
+            });
+
+            async function loadPrompts() {
+                promptList.innerHTML = '<div class="p-4 text-sm text-gray-500">Loading prompts...</div>';
+                try {
+                    allPrompts = await GistManager.getPrompts();
+                    allPrompts.sort((a, b) => a.name.localeCompare(b.name));
+                    renderPromptList(allPrompts);
+                    extractAllTags(allPrompts);
+                    if (allPrompts.length === 0 && GistManager.token) {
+                        promptList.innerHTML = '<div class="p-4 text-sm text-gray-500">No prompts found. Click "New Prompt" to create one.</div>';
+                    }
+                } catch (error) {
+                    console.error('Error loading prompts:', error);
+                    promptList.innerHTML = '<div class="p-4 text-sm text-red-500">Error loading prompts. Check console.</div>';
+                }
+            }
+
+            function renderPromptList(promptsToRender) {
+                promptList.innerHTML = '';
+                const filteredPrompts = filterPrompts(promptsToRender);
+
+                if (filteredPrompts.length === 0 && GistManager.token) {
+                    promptList.innerHTML = '<div class="p-4 text-sm text-gray-500">No prompts match your search or filter.</div>';
+                    return;
+                } else if (!GistManager.token) {
+                    promptList.innerHTML = '<div class="p-4 text-sm text-gray-500">Sign in to load prompts.</div>';
+                    return;
+                }
+
+
+                filteredPrompts.forEach(prompt => {
+                    const element = document.createElement('div');
+                    element.className = `py-2 px-4 hover:bg-gray-100 cursor-pointer border-l-4 ${currentPromptId === prompt.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`;
+                    element.dataset.id = prompt.id;
+
+                    element.innerHTML = `
+                <div class="font-medium ${currentPromptId === prompt.id ? 'text-blue-600' : 'text-gray-800'}">${prompt.name}</div>
+                <div class="flex flex-wrap mt-1 gap-1">
+                    ${prompt.tags.map(tag => `<span class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">${tag}</span>`).join('')}
+                </div>
+            `;
+
+                    element.addEventListener('click', function () {
+                        if (currentPromptId !== prompt.id) {
+                            currentPromptId = prompt.id;
+                            const selectedPrompt = allPrompts.find(p => p.id === prompt.id);
+                            loadPromptToForm(selectedPrompt);
+                            renderPromptList(allPrompts); // Re-render to highlight selection
+                            updateFormButtons(true);
+                        }
+                    });
+                    promptList.appendChild(element);
+                });
+                // Ensure the selected prompt is visible
+                const selectedElement = promptList.querySelector(`[data-id="${currentPromptId}"]`);
+                if (selectedElement) {
+                    selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            function filterPrompts(prompts) {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                return prompts.filter(prompt => {
+                    const searchMatch = searchTerm === '' ||
+                        prompt.name.toLowerCase().includes(searchTerm) ||
+                        prompt.content.toLowerCase().includes(searchTerm) ||
+                        prompt.tags.some(tag => tag.toLowerCase().includes(searchTerm)) ||
+                        prompt.category.toLowerCase().includes(searchTerm);
+
+                    const tagFilterMatch = activeTags.size === 0 ||
+                        prompt.tags.some(tag => activeTags.has(tag));
+
+                    return searchMatch && tagFilterMatch;
+                });
+            }
+
+            searchInput.addEventListener('input', () => renderPromptList(allPrompts));
+
+            function extractAllTags(prompts) {
+                const tags = new Set();
+                prompts.forEach(prompt => prompt.tags.forEach(tag => tags.add(tag)));
+                renderTagFilters(Array.from(tags));
+            }
+
+            function renderTagFilters(tags) {
+                tagFiltersContainer.innerHTML = '';
+                if (tags.length === 0) return;
+
+                tags.sort().forEach(tag => {
+                    const element = document.createElement('span');
+                    element.className = `text-xs px-2 py-1 rounded mr-1 mb-1 cursor-pointer transition-colors duration-150 ${activeTags.has(tag) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+                    element.textContent = tag;
+
+                    element.addEventListener('click', function () {
+                        if (activeTags.has(tag)) {
+                            activeTags.delete(tag);
+                        } else {
+                            activeTags.add(tag);
+                        }
+                        renderTagFilters(tags);
+                        renderPromptList(allPrompts);
+                    });
+                    tagFiltersContainer.appendChild(element);
+                });
+            }
+
+            function loadPromptToForm(prompt) {
+                if (!prompt) {
+                    clearForm();
+                    return;
+                }
+                promptNameInput.value = prompt.name;
+                promptTagsInput.value = prompt.tags.join(', ');
+                promptCategorySelect.value = prompt.category;
+                promptContentTextarea.value = prompt.content;
+                extractVariablesAndUpdatePreview();
+                updateFormButtons(true);
+            }
+
+            function clearForm() {
+                promptForm.reset();
+                currentPromptId = null;
+                variablesContainer.innerHTML = '';
+                finalPromptPreview.textContent = '';
+                finalPromptPreview.classList.add('hidden');
+                copyPromptBtn.disabled = true;
+                updateFormButtons(false);
+                renderPromptList(allPrompts); // Deselect in list
+            }
+
+            function extractVariablesAndUpdatePreview() {
+                const content = promptContentTextarea.value;
+                variablesContainer.innerHTML = '';
+                finalPromptPreview.classList.remove('hidden');
+                copyPromptBtn.disabled = false;
+
+                const variableRegex = /#\{([^}]+)\}/g;
+                const templateRegex = /\[([^\]]+)\]/g;
+                const prefilledRegex = /\{\{([^}]+)\}\}/g;
+                const globalTemplateRegex = /<<([^>]+)>>/g; // Placeholder for potential future feature
+
+                const variables = new Set();
+                let match;
+                while ((match = variableRegex.exec(content)) !== null) {
+                    variables.add(match[1]);
+                }
+
+                if (variables.size === 0) {
+                    variablesContainer.innerHTML = '<p class="text-sm text-gray-500">No variables found in the prompt content.</p>';
+                } else {
+                    variables.forEach(variable => addVariableToPreview(variable));
+                }
+
+                updateFinalPromptPreview(); // Initial preview update
+            }
+
+            function addVariableToPreview(variable) {
+                const element = document.createElement('div');
+                element.className = 'variable-input grid grid-cols-[100px_1fr] items-center gap-2';
+
+                element.innerHTML = `
+            <label class="block text-sm font-medium text-gray-700 text-right pr-2">${variable}:</label>
+            <input type="text" data-variable="${variable}" placeholder="Enter ${variable}" class="variable-value-input w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm">
+        `;
+                variablesContainer.appendChild(element);
+
+                const input = element.querySelector('.variable-value-input');
+                input.addEventListener('input', updateFinalPromptPreview);
+            }
+
+            function updateFinalPromptPreview() {
+                let previewContent = promptContentTextarea.value;
+                const variableInputs = variablesContainer.querySelectorAll('.variable-value-input');
+
+                variableInputs.forEach(input => {
+                    const varName = input.dataset.variable;
+                    const varValue = input.value.trim();
+                    const regex = new RegExp(`#\\{${varName}\\}`, 'g');
+                    // Replace with value or keep placeholder if empty
+                    previewContent = previewContent.replace(regex, varValue || `#{${varName}}`);
+                });
+
+                // Simple replacement for template/prefilled placeholders for preview clarity
+                previewContent = previewContent.replace(/\[([^\]]+)\]/g, '$1');
+                previewContent = previewContent.replace(/\{\{([^}]+)\}\}/g, '$1');
+                previewContent = previewContent.replace(/<<([^>]+)>>/g, `(Global: $1)`);
+
+
+                finalPromptPreview.textContent = previewContent;
+            }
+
+
+            promptContentTextarea.addEventListener('input', extractVariablesAndUpdatePreview);
+
+            function getTagsFromString(tagsString) {
+                return tagsString.split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag !== '');
+            }
+
+            function insertTextAtCursor(textarea, textToInsert) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                textarea.value = text.substring(0, start) + textToInsert + text.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
+                textarea.focus();
+                extractVariablesAndUpdatePreview(); // Update preview after insertion
+            }
+
+            function wrapSelection(textarea, prefix, suffix) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const selectedText = textarea.value.substring(start, end);
+                const text = textarea.value;
+
+                if (start === end) { // No selection, just insert prefix/suffix
+                    textarea.value = text.substring(0, start) + prefix + suffix + text.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+                } else { // Wrap selected text
+                    textarea.value = text.substring(0, start) + prefix + selectedText + suffix + text.substring(end);
+                    textarea.selectionStart = start;
+                    textarea.selectionEnd = end + prefix.length + suffix.length;
+                }
+                textarea.focus();
+                extractVariablesAndUpdatePreview();
+            }
+
+
+            addVariableBtn.addEventListener('click', () => {
+                variableModal.classList.remove('hidden');
+                variableNameInput.focus();
+            });
+
+            cancelVariableBtn.addEventListener('click', () => {
+                variableModal.classList.add('hidden');
+                variableNameInput.value = '';
+            });
+
+            addVariableConfirmBtn.addEventListener('click', () => {
+                const varName = variableNameInput.value.trim().replace(/\s+/g, '_'); // Basic sanitization
+                if (varName) {
+                    insertTextAtCursor(promptContentTextarea, `#{${varName}}`);
+                    variableModal.classList.add('hidden');
+                    variableNameInput.value = '';
+                } else {
+                    alert('Please enter a variable name.');
+                }
+            });
+
+            markAsTemplateBtn.addEventListener('click', () => {
+                wrapSelection(promptContentTextarea, '[', ']');
+            });
+            markAsPrefilledBtn.addEventListener('click', () => {
+                wrapSelection(promptContentTextarea, '{{', '}}');
+            });
+            insertGlobalTemplateBtn.addEventListener('click', () => {
+                const key = prompt('Enter Global Template Key:');
+                if (key && key.trim()) {
+                    insertTextAtCursor(promptContentTextarea, `<<${key.trim().toUpperCase()}>>`);
+                }
+            });
+
+
+            promptForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                if (!GistManager.token) {
+                    showNotification('Please sign in to save prompts.', 'error');
+                    return;
+                }
+
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving...';
+
+                const promptData = {
+                    id: currentPromptId || `temp-${Date.now()}`, // Use temp ID for new prompts
+                    name: promptNameInput.value.trim(),
+                    tags: getTagsFromString(promptTagsInput.value),
+                    category: promptCategorySelect.value,
+                    content: promptContentTextarea.value.trim(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (!promptData.name || !promptData.content) {
+                    showNotification('Prompt Name and Content are required.', 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Prompt';
+                    return;
+                }
+
+
+                try {
+                    let isNewPrompt = !allPrompts.some(p => p.id === promptData.id);
+                    if (isNewPrompt) {
+                        promptData.createdAt = new Date().toISOString();
+                        // Generate a more robust unique ID locally before saving if needed,
+                        // or rely on Gist saving to handle ID generation if not editing existing.
+                        // For simplicity, we'll add/update in memory first.
+                        promptData.id = `p-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+                        allPrompts.push(promptData);
+                    } else {
+                        const index = allPrompts.findIndex(p => p.id === promptData.id);
+                        if (index !== -1) {
+                            allPrompts[index] = { ...allPrompts[index], ...promptData };
+                        }
+                    }
+
+                    allPrompts.sort((a, b) => a.name.localeCompare(b.name)); // Keep sorted
+                    await GistManager.saveAllPrompts(allPrompts);
+
+                    currentPromptId = promptData.id; // Ensure current ID matches saved prompt
+                    renderPromptList(allPrompts);
+                    extractAllTags(allPrompts);
+                    updateFormButtons(true); // Enable delete/duplicate now
+                    showNotification(`Prompt "${promptData.name}" saved successfully!`, 'success');
+
+                } catch (error) {
+                    console.error('Error saving prompt:', error);
+                    showNotification('Error saving prompt. See console for details.', 'error');
+                    // Optionally revert optimistic update if save fails
+                    if (isNewPrompt) {
+                        allPrompts = allPrompts.filter(p => p.id !== promptData.id);
+                    }
+                    // Re-render list based on potentially reverted state
+                    renderPromptList(allPrompts);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Prompt';
+                }
+            });
+
+            cancelBtn.addEventListener('click', clearForm);
+
+            newPromptBtn.addEventListener('click', () => {
+                clearForm();
+                promptNameInput.focus();
+            });
+
+            deleteBtn.addEventListener('click', async () => {
+                if (!currentPromptId || !GistManager.token) return;
+
+                const promptToDelete = allPrompts.find(p => p.id === currentPromptId);
+                if (!promptToDelete) return;
+
+                if (confirm(`Are you sure you want to delete the prompt "${promptToDelete.name}"?`)) {
+                    try {
+                        allPrompts = allPrompts.filter(p => p.id !== currentPromptId);
+                        await GistManager.saveAllPrompts(allPrompts);
+                        showNotification(`Prompt "${promptToDelete.name}" deleted.`, 'success');
+                        clearForm(); // Clears form and selection
+                        renderPromptList(allPrompts); // Re-renders list without deleted item
+                        extractAllTags(allPrompts);
+                    } catch (error) {
+                        console.error('Error deleting prompt:', error);
+                        showNotification('Error deleting prompt. See console.', 'error');
+                        // Optionally re-add prompt if save fails
+                        allPrompts.push(promptToDelete);
+                        allPrompts.sort((a, b) => a.name.localeCompare(b.name));
+                        renderPromptList(allPrompts);
+                    }
+                }
+            });
+
+            duplicateBtn.addEventListener('click', () => {
+                if (!currentPromptId) return;
+                const originalPrompt = allPrompts.find(p => p.id === currentPromptId);
+                if (!originalPrompt) return;
+
+                clearForm(); // Clear selection and form first
+
+                promptNameInput.value = `${originalPrompt.name} (Copy)`;
+                promptTagsInput.value = originalPrompt.tags.join(', ');
+                promptCategorySelect.value = originalPrompt.category;
+                promptContentTextarea.value = originalPrompt.content;
+
+                currentPromptId = null; // It's a new prompt now
+                extractVariablesAndUpdatePreview();
+                updateFormButtons(false); // Treat as unsaved new prompt
+                promptNameInput.focus();
+                showNotification(`Prompt "${originalPrompt.name}" duplicated. Save to keep the copy.`, 'info');
+            });
+
+
+            copyPromptBtn.addEventListener('click', function () {
+                const textToCopy = finalPromptPreview.textContent;
+                if (!textToCopy) return;
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    copyStatus.classList.remove('hidden');
+                    setTimeout(() => {
+                        copyStatus.classList.add('hidden');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy prompt.');
+                });
+            });
+
+            function updateFormButtons(isEditingExisting) {
+                deleteBtn.classList.toggle('hidden', !isEditingExisting);
+                duplicateBtn.classList.toggle('hidden', !isEditingExisting);
+            }
+
+            function showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                let bgColor, textColor;
+                switch (type) {
+                    case 'success':
+                        bgColor = 'bg-green-100'; textColor = 'text-green-700'; break;
+                    case 'error':
+                        bgColor = 'bg-red-100'; textColor = 'text-red-700'; break;
+                    case 'warning':
+                        bgColor = 'bg-yellow-100'; textColor = 'text-yellow-700'; break;
+                    default: // info
+                        bgColor = 'bg-blue-100'; textColor = 'text-blue-700'; break;
+                }
+                notification.className = `fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${bgColor} ${textColor} text-sm z-50 transition-opacity duration-300`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000); // Notification stays for 3 seconds
+            }
+
+
+            clearForm(); // Initialize with a clear form
+        });
+    </script>
+</body>
+
+</html>
